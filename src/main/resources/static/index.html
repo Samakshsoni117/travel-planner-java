@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Travel Itinerary Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* New travel background image from a royalty-free source */
+            background-image: url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed; /* Keeps the background stationary on scroll */
+        }
+        /* Custom animation for the loading skeleton */
+        @keyframes pulse-bg {
+            0%, 100% { background-color: #f0fdfa; } /* Lighter teal for pulse */
+            50% { background-color: #ccfbf1; } /* Darker teal for pulse */
+        }
+        .animate-pulse-bg {
+            animation: pulse-bg 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .prose h2 {
+          font-size: 1.25rem;
+          margin-top: 1.5em;
+          margin-bottom: 0.5em;
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Updated main card with a semi-transparent, blurred background for a "frosted glass" effect -->
+    <main class="bg-white/90 backdrop-blur-lg w-full max-w-4xl rounded-2xl shadow-xl p-8 md:p-12 my-8">
+        
+        <!-- Header Section -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 flex items-center justify-center gap-3">
+                <!-- Added a small SVG icon for flair -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-teal-500"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
+                Smart Travel Itinerary Generator
+            </h1>
+            <p class="text-gray-600 mt-2">Describe your dream trip, and let our AI craft the perfect plan for you!</p>
+        </header>
+        
+        <!-- Input Section -->
+        <div id="input-section">
+            <label for="prompt-input" class="block text-lg font-semibold mb-2 text-gray-700">Your travel idea:</label>
+            <textarea id="prompt-input" rows="4" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200" placeholder="e.g., 'A 4-day adventurous trip to Goa with a medium budget, focusing on beaches and historical sites.'"></textarea>
+            <!-- Updated button with the new teal color scheme -->
+            <button id="generate-btn" class="mt-4 w-full bg-teal-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-teal-700 active:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all duration-200 ease-in-out transform hover:scale-105">
+                Generate Itinerary
+            </button>
+        </div>
+        
+        <!-- Error Message Box -->
+        <div id="error-box" class="hidden mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <p><strong class="font-bold">Error:</strong> <span id="error-message"></span></p>
+        </div>
+
+        <!-- Loading Skeleton -->
+        <div id="loading-skeleton" class="hidden mt-6">
+            <div class="animate-pulse-bg h-8 w-3/4 rounded-md mb-4"></div>
+            <div class="animate-pulse-bg h-4 w-full rounded-md mb-6"></div>
+            <div class="space-y-6">
+                <div class="space-y-3">
+                    <div class="animate-pulse-bg h-6 w-1/2 rounded-md"></div>
+                    <div class="animate-pulse-bg h-4 w-full rounded-md"></div>
+                    <div class="animate-pulse-bg h-4 w-5/6 rounded-md"></div>
+                </div>
+                <div class="space-y-3">
+                    <div class="animate-pulse-bg h-6 w-1/2 rounded-md"></div>
+                    <div class="animate-pulse-bg h-4 w-full rounded-md"></div>
+                    <div class="animate-pulse-bg h-4 w-5/6 rounded-md"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="results-section" class="hidden mt-8">
+            <div class="flex justify-between items-center border-b pb-4 mb-4">
+                <h2 class="text-2xl font-bold">Your Custom Itinerary</h2>
+                <button id="copy-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">Copy</button>
+            </div>
+            <div id="itinerary-content" class="prose max-w-none">
+                <!-- Itinerary will be rendered here by JavaScript -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Section -->
+    <footer class="text-center text-white font-medium mt-4 bg-black/30 px-4 py-2 rounded-lg">
+        <p>Created by Samaksh.</p>
+    </footer>
+
+
+    <script>
+        // Get references to all the important HTML elements
+        const generateBtn = document.getElementById('generate-btn');
+        const promptInput = document.getElementById('prompt-input');
+        const inputSection = document.getElementById('input-section');
+        const errorBox = document.getElementById('error-box');
+        const errorMessage = document.getElementById('error-message');
+        const loadingSkeleton = document.getElementById('loading-skeleton');
+        const resultsSection = document.getElementById('results-section');
+        const itineraryContent = document.getElementById('itinerary-content');
+        const copyBtn = document.getElementById('copy-btn');
+        
+        // This is the URL of your Java backend server
+        const API_URL = 'http://localhost:8080/api/itinerary/generate';
+
+        // --- Event Listeners ---
+        
+        // Listen for clicks on the "Generate" button
+        generateBtn.addEventListener('click', handleGenerateClick);
+        
+        // Listen for clicks on the "Copy" button
+        copyBtn.addEventListener('click', copyItineraryToClipboard);
+        
+        // --- Core Functions ---
+        
+        /**
+         * Main function to handle the generation process.
+         */
+        async function handleGenerateClick() {
+            const userPrompt = promptInput.value.trim();
+            if (!userPrompt) {
+                showError("Please enter your travel idea.");
+                return;
+            }
+
+            setLoadingState(true);
+            
+            try {
+                // Call our Java backend
+                const responseJson = await callBackendAPI(userPrompt);
+                
+                // The backend returns a string of JSON, so we need to parse it
+                const parsedResponse = parseAIResponse(responseJson);
+
+                renderItinerary(parsedResponse);
+                showResults();
+            } catch (error) {
+                console.error("Error during generation:", error);
+                showError(error.message || "An unknown error occurred. Make sure your Java backend is running.");
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        /**
+         * Calls our local Java backend API.
+         * @param {string} userPrompt - The text from the user.
+         * @returns {Promise<string>} - The raw JSON string from the backend.
+         */
+        async function callBackendAPI(userPrompt) {
+            // The payload our Java backend expects: { "prompt": "..." }
+            const payload = {
+                prompt: userPrompt
+            };
+            
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                console.error("Backend Error Response:", errorBody);
+                throw new Error(`The server responded with an error: ${response.status}`);
+            }
+            
+            // The backend returns the AI's JSON as a plain text string
+            return await response.text();
+        }
+
+        /**
+         * Safely parses the JSON string from the AI.
+         * @param {string} text - The raw text response from the backend.
+         * @returns {object} - The parsed JavaScript object.
+         */
+        function parseAIResponse(text) {
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                console.error("Failed to parse JSON:", text);
+                throw new Error("The AI returned an invalid format. Please try again.");
+            }
+        }
+
+        /**
+         * Renders the itinerary object into HTML.
+         * @param {object} data - The parsed itinerary object.
+         */
+        function renderItinerary(data) {
+            let html = `<h1>${data.title || 'Your Travel Plan'}</h1>`;
+            html += `<p class="lead">${data.summary || ''}</p>`;
+
+            if (data.daily_plan && data.daily_plan.length > 0) {
+                data.daily_plan.forEach(day => {
+                    html += `<h2>Day ${day.day}: ${day.theme || ''}</h2>`;
+                    if (day.activities && day.activities.length > 0) {
+                        html += '<ul>';
+                        day.activities.forEach(activity => {
+                            html += `<li><strong>${activity.time}:</strong> ${activity.description}`;
+                            if (activity.budget_tip) {
+                                html += ` <br><em><small>Budget Tip: ${activity.budget_tip}</small></em>`;
+                            }
+                            html += '</li>';
+                        });
+                        html += '</ul>';
+                    }
+                });
+            }
+            itineraryContent.innerHTML = html;
+        }
+        
+        /**
+         * Copies the generated itinerary text to the clipboard.
+         */
+        function copyItineraryToClipboard() {
+            const textToCopy = itineraryContent.innerText;
+            // Using a temporary textarea is a robust way to copy text
+            const textArea = document.createElement('textarea');
+            textArea.value = textToCopy;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // --- UI State Management ---
+
+        function setLoadingState(isLoading) {
+            if (isLoading) {
+                inputSection.classList.add('hidden');
+                resultsSection.classList.add('hidden');
+                errorBox.classList.add('hidden');
+                loadingSkeleton.classList.remove('hidden');
+            } else {
+                loadingSkeleton.classList.add('hidden');
+            }
+        }
+
+        function showResults() {
+            resultsSection.classList.remove('hidden');
+            inputSection.classList.add('hidden'); // Keep input hidden to show results clearly
+        }
+
+        function showError(message) {
+            errorMessage.textContent =a message;
+            errorBox.classList.remove('hidden');
+            inputSection.classList.remove('hidden'); // Show input so user can try again
+            resultsSection.classList.add('hidden');
+        }
+
+    </script>
+</body>
+</html>
+
