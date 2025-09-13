@@ -93,7 +93,7 @@
                      <button id="copy-btn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-6 rounded-lg transition">Copy Itinerary</button>
                 </div>
             </div>
-            
+
         </div>
         <footer class="text-center py-4 text-sm text-gray-400 bg-black bg-opacity-20">
             Created by Samaksh
@@ -219,7 +219,7 @@
             }
         }
 
-        // --- THIS FUNCTION IS NOW FIXED ---
+        // --- THIS FUNCTION IS NOW FULLY CORRECTED ---
         function renderItinerary(data) {
             itineraryTitle.textContent = data.title;
             itinerarySummary.textContent = data.summary;
@@ -229,19 +229,15 @@
                 const dayElement = document.createElement('div');
                 dayElement.className = 'p-4 rounded-lg bg-black bg-opacity-20';
                 
-                // This part now handles activities as objects OR strings
                 let activitiesHtml = day.activities.map(activity => {
-                    // Check if activity is an object with a 'description' or similar property
                     if (typeof activity === 'object' && activity !== null) {
-                        // You can check for different possible property names
                         const description = activity.description || activity.activity || activity.task || 'No description provided.';
                         return `<li class="mb-1">${description}</li>`;
                     }
-                    // Otherwise, assume it's a simple string
                     return `<li class="mb-1">${activity}</li>`;
                 }).join('');
 
-                // This part now provides a fallback if 'day' or 'title' is missing
+                // THIS IS THE FINAL FIX: Correctly access day.day and day.title
                 const dayNumber = day.day || 'Day';
                 const dayTitle = day.title || 'Details';
 
