@@ -214,12 +214,12 @@
                 return parsedJson;
             } catch (error) {
                 console.error("Failed to parse AI response:", error);
-                // THIS IS THE CORRECTED LINE:
                 showError("The AI returned an invalid response. Please try again.");
                 return null;
             }
         }
 
+        // --- THIS FUNCTION IS NOW FIXED ---
         function renderItinerary(data) {
             itineraryTitle.textContent = data.title;
             itinerarySummary.textContent = data.summary;
@@ -229,12 +229,24 @@
                 const dayElement = document.createElement('div');
                 dayElement.className = 'p-4 rounded-lg bg-black bg-opacity-20';
                 
-                let activitiesHtml = day.activities.map(activity => 
-                    `<li class="mb-1">${activity}</li>`
-                ).join('');
+                // This part now handles activities as objects OR strings
+                let activitiesHtml = day.activities.map(activity => {
+                    // Check if activity is an object with a 'description' or similar property
+                    if (typeof activity === 'object' && activity !== null) {
+                        // You can check for different possible property names
+                        const description = activity.description || activity.activity || activity.task || 'No description provided.';
+                        return `<li class="mb-1">${description}</li>`;
+                    }
+                    // Otherwise, assume it's a simple string
+                    return `<li class="mb-1">${activity}</li>`;
+                }).join('');
+
+                // This part now provides a fallback if 'day' or 'title' is missing
+                const dayNumber = day.day || 'Day';
+                const dayTitle = day.title || 'Details';
 
                 dayElement.innerHTML = `
-                    <h3 class="text-xl font-bold text-teal-300">${day.day}: ${day.title}</h3>
+                    <h3 class="text-xl font-bold text-teal-300">${dayNumber}: ${dayTitle}</h3>
                     <ul class="list-disc list-inside mt-2 text-gray-300">
                         ${activitiesHtml}
                     </ul>
